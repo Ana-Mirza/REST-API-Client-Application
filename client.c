@@ -27,12 +27,68 @@ char jwt[MAX_BUF];
 /* buffer for session cookie */
 char session_cookie[MAX_BUF];
 
-/* ----------------------- helper command functions ----------------------- */
+
+/* ----------------------- helper functions ----------------------- */
+
+void get_credentials_json(char username[], char password[]) {
+
+}
+
+/* ----------------------- helper commands functions ----------------------- */
 
 void register_user(int sockfd) {
     printf("-----register function-----\n");
     char url[LEN] = "/api/v1/tema/auth/register";
     char content_type[LEN] = "application/json";
+    char username[MAX_BUF];
+    char password[MAX_BUF];
+
+    /* get username */
+    printf("username=\n");
+    fgets(username, MAX_BUF, stdin);
+
+    /* check if username has spaces */
+    int nr = 0;
+    char tmp[strlen(username) + 1];
+    memcpy(tmp, username, strlen(username) + 1);
+
+    char *token = strtok(tmp, " \n");
+    while (token != NULL) {
+        nr++;
+
+        if (nr == 2) {
+            printf("invalid username\n");
+            return;
+        }
+        token = strtok(NULL, " \n");
+    }
+    
+    /* get password */
+    printf("password=\n");
+    fgets(password, MAX_BUF, stdin);
+
+    /* check if password has spaces */
+    nr = 0;
+    tmp[strlen(password) + 1];
+    memcpy(tmp, password, strlen(password) + 1);
+
+    token = strtok(tmp, " \n");
+    while (token != NULL) {
+        nr++;
+
+        if (nr == 2) {
+            printf("invalid password\n");
+            return;
+        }
+        token = strtok(NULL, " \n");
+    }
+
+    /* delete endline */
+    username[strlen(username) - 1] = '\0';
+    password[strlen(password) - 1] = '\0';
+
+    /* send post request */
+
 
     /* error if credetials are already used */
 }
@@ -117,6 +173,11 @@ void logout(int sockfd) {
         printf("Not logged in\n");
         return;
     }
+
+    /* reset status */
+    is_authenticated = 0;
+    has_access = 0;
+    memset(session_cookie, 0, sizeof(session_cookie));
 }
 
 /* ----------------------- MAIN -----------------------*/
