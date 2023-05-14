@@ -84,11 +84,16 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
     */
 
     memset(body_data_buffer, 0, LINELEN);
-    for (int i = 0; i < body_data_fields_count; i++) {
-        strcat(body_data_buffer, body_data[i]);
-        strcat(body_data_buffer, "&");
+    if (body_data != NULL) {
+        memset(body_data_buffer, 0, LINELEN);
+        strcat(body_data_buffer, "");
+        strcat(body_data_buffer, body_data[0]);
     }
-    body_data_buffer[strlen(body_data_buffer) - 1] = '\0';
+    // for (int i = 0; i < body_data_fields_count; i++) {
+    //     strcat(body_data_buffer, body_data[i]);
+    //     strcat(body_data_buffer, "&");
+    // }
+    // body_data_buffer[strlen(body_data_buffer) - 1] = '\0';
 
     memset(line, 0, LINELEN);
     sprintf(line, "Content-Type: %s", content_type);
@@ -110,12 +115,11 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
         compute_message(message, line);
     }
     /* Add new line at end of header */
-    compute_message(message, "\n");
+    compute_message(message, "");
 
     /* Add the actual payload data */
     memset(line, 0, LINELEN);
     strcat(message, body_data_buffer);
-    compute_message(message, line);
 
     free(line);
     free(body_data_buffer);
