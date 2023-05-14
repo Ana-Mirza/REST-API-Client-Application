@@ -379,8 +379,8 @@ void add_book(int sockfd) {
 
 void delete_book(int sockfd) {
     printf("-----delete book function-----\n");
-    // char book_id[MAX_BUF];
-    // char url[LEN] = "/api/v1/tema/library/books/:%s", book_id;
+    char book_id[MAX_BUF];
+    char url[LEN] = "/api/v1/tema/library/books/";
 
     /* check if user has access to library */
     if (!has_access) {
@@ -388,7 +388,49 @@ void delete_book(int sockfd) {
         return;
     }
 
-    /* error if id is invalid */
+    /* get book id */
+    printf("id=\n");
+    fgets(book_id, MAX_BUF, stdin);
+
+    /* check if id is valid */
+    int nr = 0;
+    char tmp[strlen(book_id) + 1];
+    memcpy(tmp, book_id, strlen(book_id) + 1);
+
+    char *token = strtok(tmp, " \n");
+    while (token != NULL) {
+        nr++;
+
+        if (nr == 2) {
+            printf("Invalid book id\n");
+            return;
+        }
+        token = strtok(NULL, " \n");
+    }
+
+    /* check not to have letters  or symbols */
+    book_id[strlen(book_id) - 1] = '\0';
+    for (int i = 0; i < strlen(book_id); i++) {
+        if (book_id[i] != '0' && book_id[i] != '1' && book_id[i] != '2' &&
+            book_id[i] != '3' && book_id[i] != '4' && book_id[i] != '5' &&
+            book_id[i] != '6' && book_id[i] != '7' && book_id[i] != '8' &&
+            book_id[i] != '9') {
+            printf("Invalid book id\n");
+            return;
+        }
+    }
+
+    strcat(url, book_id);
+    send_get_delete_request(sockfd, url, jwt_token, 0);
+
+    /* print output */
+    if (strstr(response, "No book was found!") != NULL) {
+        printf("Book not found.\n");
+    } else {
+        printf("Book deleted.\n");
+    }
+
+    free(response);
 }
 
 void logout(int sockfd) {
