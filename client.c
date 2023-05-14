@@ -34,6 +34,8 @@ char *jwt_token;
 char *session_cookie[1];
 /* buffer for user credentials */
 char *credentials_json[1];
+/* buffer for book to be added */
+char *book_buf[1];
 
 
 /* ----------------------- helper functions ----------------------- */
@@ -57,10 +59,10 @@ void get_credentials_json(char username[], char password[]) {
     json_value_free(val);
 }
 
-void send_post_request(int sockfd, char url[], char token[MAX_BUF]) {
+void send_post_request(int sockfd, char url[], char *credentials[1], char token[MAX_BUF]) {
     char content_type[LEN] = "application/json";
 
-    request = compute_post_request("34.254.242.81:8080", url, content_type, credentials_json, 1, NULL, 0, token);
+    request = compute_post_request("34.254.242.81:8080", url, content_type, credentials, 1, NULL, 0, token);
     printf("%s\n", request);
 
     send_to_server(sockfd, request);
@@ -98,7 +100,7 @@ void register_user(int sockfd) {
     }
 
     /* get username */
-    printf("username=\n");
+    printf("username=");
     fgets(username, MAX_BUF, stdin);
 
     /* check if username has spaces */
@@ -118,15 +120,15 @@ void register_user(int sockfd) {
     }
     
     /* get password */
-    printf("password=\n");
+    printf("password=");
     fgets(password, MAX_BUF, stdin);
 
     /* check if password has spaces */
     nr = 0;
-    tmp[strlen(password) + 1];
-    memcpy(tmp, password, strlen(password) + 1);
+    char tmp2[sizeof(password) + 1];
+    memcpy(tmp2, password, strlen(password) + 1);
 
-    token = strtok(tmp, " \n");
+    token = strtok(tmp2, " \n");
     while (token != NULL) {
         nr++;
 
@@ -145,14 +147,16 @@ void register_user(int sockfd) {
     get_credentials_json(username, password);
 
     /* send post request */
-    send_post_request(sockfd, url, NULL);
+    send_post_request(sockfd, url, credentials_json, NULL);
     free(credentials_json[0]);
 
     /* error if credentials are already used */
     if (strstr(response, "is taken") != NULL) {
         printf("Invalid credentials.\n");
-    } else {
+    } else if (strstr(response, "200 OK") != NULL) {
         printf("Registration successful!\n");
+    } else {
+        printf("Error.\n");
     }
 
     free(response);
@@ -161,7 +165,6 @@ void register_user(int sockfd) {
 void login(int sockfd) {
     printf("-----login function-----\n");
     char url[LEN] = "/api/v1/tema/auth/login";
-    char content_type[LEN] = "application/json";
 
     char username[MAX_BUF];
     char password[MAX_BUF];
@@ -173,7 +176,7 @@ void login(int sockfd) {
     }
 
     /* get username */
-    printf("username=\n");
+    printf("username=");
     fgets(username, MAX_BUF, stdin);
 
     /* check if username has spaces */
@@ -193,15 +196,15 @@ void login(int sockfd) {
     }
     
     /* get password */
-    printf("password=\n");
+    printf("password=");
     fgets(password, MAX_BUF, stdin);
 
     /* check if password has spaces */
     nr = 0;
-    tmp[strlen(password) + 1];
-    memcpy(tmp, password, strlen(password) + 1);
+    char tmp2[sizeof(password) + 1];
+    memcpy(tmp2, password, strlen(password) + 1);
 
-    token = strtok(tmp, " \n");
+    token = strtok(tmp2, " \n");
     while (token != NULL) {
         nr++;
 
@@ -220,7 +223,7 @@ void login(int sockfd) {
     get_credentials_json(username, password);
 
     /* send post request */
-    send_post_request(sockfd, url, NULL);
+    send_post_request(sockfd, url, credentials_json, NULL);
     free(credentials_json[0]);
 
     /* error if credentials don't match */
@@ -247,12 +250,17 @@ void login(int sockfd) {
     memcpy(temp, ptr, len);
     session_cookie[0] = temp;
 
-    /* set flags for connection */
-    is_authenticated = 1;
-    has_access = 0;
+    if (strstr(response, "200 OK") != NULL) {
+        /* set flags for connection */
+        is_authenticated = 1;
+        has_access = 0;
+
+        printf("Logged in successfully!\n");
+    } else {
+        printf("Error.\n");
+    }
 
     free(response);
-    printf("Logged in successfully!\n");
 }
 
 void enter_library(int sockfd) {
@@ -280,13 +288,18 @@ void enter_library(int sockfd) {
     jwt_token = malloc(len * sizeof(char));
     if (jwt_token == NULL) {
         printf("malloc failed\n");
-        return -1;
+        return;
     }
     memcpy(jwt_token, temp, len);
     jwt_token[strlen(jwt_token) - 2] = '\0';
 
-    printf("Entered library successfully!\n");
-    has_access = 1;
+    if (strstr(response, "200 OK") != NULL) {
+        printf("Entered library successfully!\n");
+        has_access = 1;
+    } else {
+        printf("Error.\n");
+    }
+    
     free(response);
 
 }
@@ -319,7 +332,7 @@ void get_book(int sockfd) {
     }
 
     /* get book id */
-    printf("id=\n");
+    printf("id=");
     fgets(book_id, MAX_BUF, stdin);
 
     /* check if id is valid */
@@ -356,8 +369,10 @@ void get_book(int sockfd) {
     /* print output */
     if (strstr(response, "No book was found!") != NULL) {
         printf("Book not found.\n");
-    } else {
+    } else if (strstr(response, "200 OK") != NULL) {
         printf("%s\n", response);
+    } else {
+        printf("Error.\n");
     }
 
     free(response);
@@ -366,7 +381,9 @@ void get_book(int sockfd) {
 void add_book(int sockfd) {
     printf("-----add book function-----\n");
     char url[LEN] = "/api/v1/tema/library/books";
-    char content_type[LEN] = "application/json";
+
+    char title[MAX_BUF], author[MAX_BUF], genre[MAX_BUF];
+    char publisher[MAX_BUF], page_count[MAX_BUF];
 
     /* check if user has access to library */
     if (!has_access) {
@@ -374,7 +391,90 @@ void add_book(int sockfd) {
         return;
     }
 
-    /* error if information is incomplete or not respecting format */
+    /* get title */
+    printf("title=");
+
+    memset(title, 0, MAX_BUF);
+    fgets(title, MAX_BUF, stdin);
+    title[strlen(title) - 1] = '\0';
+
+    /* get author */
+    printf("author=");
+
+    memset(author, 0, MAX_BUF);
+    fgets(author, MAX_BUF, stdin);
+    author[strlen(author) - 1] = '\0';
+
+    /* get genre */
+    printf("genre=");
+
+    memset(genre, 0, MAX_BUF);
+    fgets(genre, MAX_BUF, stdin);
+    genre[strlen(genre) - 1] = '\0';
+
+    /* get publisher */
+    printf("publisher=");
+
+    memset(publisher, 0, MAX_BUF);
+    fgets(publisher, MAX_BUF, stdin);
+    publisher[strlen(publisher) - 1] = '\0';
+
+    /* get page count */
+    printf("page_count=");
+
+    memset(page_count, 0, MAX_BUF);
+    fgets(page_count, MAX_BUF, stdin);
+
+    /* check if id is valid */
+    int nr = 0;
+    char tmp[strlen(page_count) + 1];
+    memcpy(tmp, page_count, strlen(page_count) + 1);
+
+    char *token = strtok(tmp, " \n");
+    while (token != NULL) {
+        nr++;
+
+        if (nr == 2) {
+            printf("Invalid book id\n");
+            return;
+        }
+        token = strtok(NULL, " \n");
+    }
+
+    /* check not to have letters or symbols */
+    page_count[strlen(page_count) - 1] = '\0';
+    for (int i = 0; i < strlen(page_count); i++) {
+        if (page_count[i] != '0' && page_count[i] != '1' && page_count[i] != '2' &&
+            page_count[i] != '3' && page_count[i] != '4' && page_count[i] != '5' &&
+            page_count[i] != '6' && page_count[i] != '7' && page_count[i] != '8' &&
+            page_count[i] != '9') {
+            printf("Invalid book id\n");
+            return;
+        }
+    }
+
+    /* compute payload */
+    JSON_Value *val = json_value_init_object();
+    JSON_Object *obj = json_value_get_object(val);
+    json_object_set_string(obj, "title", title);
+    json_object_set_string(obj, "author", author);
+    json_object_set_string(obj, "genre", genre);
+    json_object_set_string(obj, "page_count", page_count);
+    json_object_set_string(obj, "publisher", publisher);
+    book_buf[0] = json_serialize_to_string(val);
+
+    send_post_request(sockfd, url, book_buf, jwt_token);
+    
+    if (strstr(response, "200 OK") != NULL) {
+        printf("Book successfully added!\n");
+    } else {
+        printf("Error.\n");
+    }
+
+    /* free memory */
+    free(book_buf[0]);
+    json_value_free(val);
+    free(response);
 }
 
 void delete_book(int sockfd) {
@@ -389,7 +489,7 @@ void delete_book(int sockfd) {
     }
 
     /* get book id */
-    printf("id=\n");
+    printf("id=");
     fgets(book_id, MAX_BUF, stdin);
 
     /* check if id is valid */
@@ -421,13 +521,15 @@ void delete_book(int sockfd) {
     }
 
     strcat(url, book_id);
-    send_get_delete_request(sockfd, url, jwt_token, 0);
+    send_get_delete_request(sockfd, url, jwt_token, 1);
 
     /* print output */
     if (strstr(response, "No book was found!") != NULL) {
         printf("Book not found.\n");
-    } else {
+    } else if (strstr(response, "200 OK") != NULL) {
         printf("Book deleted.\n");
+    } else {
+        printf("Error.\n");
     }
 
     free(response);
@@ -443,7 +545,6 @@ void logout(int sockfd) {
     }
 
     send_get_delete_request(sockfd, url, jwt_token, 0);
-    free(response);
 
     /* reset status */
     is_authenticated = 0;
@@ -458,7 +559,12 @@ void logout(int sockfd) {
         jwt_token = NULL;
     }
 
-    printf("Successfully logged out.\n");
+    if (strstr(response, "200 OK") != NULL)
+        printf("Successfully logged out.\n");
+    else
+        printf("Error.\n");
+
+    free(response);
 }
 
 /* ----------------------- MAIN -----------------------*/
@@ -475,7 +581,6 @@ int main(int argc, char *argv[])
         /* get command */
         printf("insert command\n");
         fgets(buffer, MAX_BUF, stdin);
-        printf("%s", buffer);
 
         /* open connection with server */
         sockfd = open_connection(host, port, AF_INET, SOCK_STREAM, 0);
