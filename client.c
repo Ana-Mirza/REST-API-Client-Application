@@ -29,7 +29,7 @@ int has_access;
 /* buffer used for user commands */
 char buffer[MAX_BUF];
 /* buffer for jwt token */
-char *jwt;
+char *jwt_token;
 /* buffer for session cookie */
 char *session_cookie[1];
 /* buffer for user credentials */
@@ -90,6 +90,12 @@ void register_user(int sockfd) {
     char url[LEN] = "/api/v1/tema/auth/register";
     char username[MAX_BUF];
     char password[MAX_BUF];
+
+    /* check if user is already logged */
+    if (is_authenticated) {
+        printf("Error. Already logged in!\n");
+        return;
+    }
 
     /* get username */
     printf("username=\n");
@@ -259,12 +265,30 @@ void enter_library(int sockfd) {
         return;
     }
 
+    send_get_delete_request(sockfd, url, jwt_token, 0);
+    char *temp = strstr(response, "token");
+    if (temp == NULL) {
+        printf("Error\n");
+        return;
+    }
+
+    /* save jwt_token token */
+    temp += 8;
+
     /* get token */
-    jwt = malloc(MAX_BUF * sizeof(char));
-    if (jwt == NULL) {
+    int len = strlen(temp) + 1;
+    jwt_token = malloc(len * sizeof(char));
+    if (jwt_token == NULL) {
         printf("malloc failed\n");
         return -1;
     }
+    memcpy(jwt_token, temp, len);
+    jwt_token[strlen(jwt_token) - 2] = '\0';
+
+    printf("Entered library successfully!\n");
+    has_access = 1;
+    free(response);
+
 }
 
 void get_books(int sockfd) {
@@ -276,11 +300,16 @@ void get_books(int sockfd) {
         printf("Error. No access to library!\n");
         return;
     }
+
+    send_get_delete_request(sockfd, url, jwt_token, 0);
+    printf("%s\n", response);
+
+    free(response);
 }
 
 void get_book(int sockfd) {
     printf("-----get book function-----\n");
-    // char book_id[MAX_BUF];
+    char book_id[MAX_BUF];
     // char url[LEN] = "/api/v1/tema/library/books/:%s", book_id;
 
     /* check if user has access to library */
@@ -290,6 +319,11 @@ void get_book(int sockfd) {
     }
 
     /* error if book id is invalid */
+    char buf[MAX_BUF];
+    fgets(buf, MAX_BUF, stdin);
+
+    int nr = 0;
+    
 }
 
 void add_book(int sockfd) {
@@ -329,7 +363,7 @@ void logout(int sockfd) {
         return;
     }
 
-    send_get_delete_request(sockfd, url, jwt, 0);
+    send_get_delete_request(sockfd, url, jwt_token, 0);
     free(response);
 
     /* reset status */
@@ -339,8 +373,11 @@ void logout(int sockfd) {
     /* free session cookie*/
     free(session_cookie[0]);
     session_cookie[0] = NULL;
-    free(jwt);
-    jwt = NULL;
+
+    if (jwt_token != NULL) {
+        free(jwt_token);
+        jwt_token = NULL;
+    }
 
     printf("Successfully logged out.\n");
 }
@@ -350,7 +387,7 @@ void logout(int sockfd) {
 int main(int argc, char *argv[])
 {
     int sockfd;
-    jwt = NULL;
+    jwt_token = NULL;
 
     /* read commands from user */
     while(1) {
@@ -397,8 +434,8 @@ int main(int argc, char *argv[])
     if (session_cookie[0] != NULL)
         free(session_cookie[0]);
 
-    if (jwt != NULL)
-        free(jwt);
+    if (jwt_token != NULL)
+        free(jwt_token);
 
     return 0;
 }
