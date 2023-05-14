@@ -10,41 +10,113 @@
 #include "requests.h"
 
 #define MAX_BUF 100
+#define LEN 20
 
+/* host and port number */
 char host[20] = "34.254.242.81";
 int port = 8080;
-char buffer[MAX_BUF];
-int is_connected;
+
+/* flags for user status */
+int is_authenticated;
 int has_access;
+
+/* buffer used for user commands */
+char buffer[MAX_BUF];
+/* buffer for jwt token */
+char jwt[MAX_BUF];
+/* buffer for session cookie */
+char session_cookie[MAX_BUF];
 
 /* ----------------------- helper command functions ----------------------- */
 
 void register_user(int sockfd) {
     printf("-----register function-----\n");
+    char url[LEN] = "/api/v1/tema/auth/register";
+    char content_type[LEN] = "application/json";
+
+    /* error if credetials are already used */
 }
 
 void login(int sockfd) {
     printf("-----login function-----\n");
+    char url[LEN] = "/api/v1/tema/auth/login";
+    char content_type[LEN] = "application/json";
+
+    /* error if credentials don't match */
 }
 
 void enter_library(int sockfd) {
     printf("-----enter library function-----\n");
+    char url[LEN] = "/api/v1/tema/library/access";
+
+    /* check if user is authenticated */
+    if (!is_authenticated) {
+        printf("Error. Authenticate first!\n");
+        return;
+    }
 }
 
 void get_books(int sockfd) {
     printf("-----get books function-----\n");
+    char url[LEN] = "/api/v1/tema/library/books";
+
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("Error. No access to library!\n");
+        return;
+    }
 }
 
 void get_book(int sockfd) {
     printf("-----get book function-----\n");
+    char book_id[MAX_BUF];
+    char url[LEN] = "/api/v1/tema/library/books/:%s", book_id;
+
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("Error. No access to library!\n");
+        return;
+    }
+
+    /* error if book id is invalid */
+}
+
+void add_book(int sockfd) {
+    printf("-----add book function-----\n");
+    char url[LEN] = "/api/v1/tema/library/books";
+    char content_type[LEN] = "application/json";
+
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("Error. No access to library!\n");
+        return;
+    }
+
+    /* error if information is incomplete or not respecting format */
 }
 
 void delete_book(int sockfd) {
     printf("-----delete book function-----\n");
+    char book_id[MAX_BUF];
+    char url[LEN] = "/api/v1/tema/library/books/:%s", book_id;
+
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("Error. No access to library!\n");
+        return;
+    }
+
+    /* error if id is invalid */
 }
 
 void logout(int sockfd) {
     printf("-----logout function-----\n");
+    char url[LEN] = "/api/v1/tema/auth/logout";
+
+    if (!is_authenticated) {
+        printf("Not logged in\n");
+        return;
+    }
 }
 
 /* ----------------------- MAIN -----------------------*/
@@ -81,6 +153,8 @@ int main(int argc, char *argv[])
             get_books(sockfd);
         } else if (strcmp(buffer, "get_book\n") == 0) {
             get_book(sockfd);
+        } else if (strcmp(buffer, "add_book\n") == 0) {
+            add_book(sockfd);
         } else if (strcmp(buffer, "delete_book\n") == 0) {
             delete_book(sockfd);
         } else if (strcmp(buffer, "logout\n") == 0) {
