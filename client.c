@@ -356,7 +356,13 @@ void get_books(int sockfd) {
     strcpy(&str[1], tmp);
     str[strlen(tmp) + 1] = '\0';
 
-    printf("%s\n", str);
+    /* get library in json format */
+    JSON_Value *val = json_parse_string(str);
+    char *books = json_serialize_to_string_pretty(val);
+    printf("%s\n\n", books);
+
+    json_free_serialized_string(books);
+    json_value_free(val);
 
     free(response);
 }
@@ -415,7 +421,13 @@ void get_book(int sockfd) {
         strcpy(&str[1], tmp);
         str[strlen(tmp) + 1] = '\0';
 
-        printf("%s\n", str);
+        /* get library in json format */
+        JSON_Value *val = json_parse_string(str);
+        char *books = json_serialize_to_string_pretty(val);
+        printf("%s\n\n", books);
+
+        json_free_serialized_string(books);
+        json_value_free(val);
     } else if (strstr(response, "error") != NULL) {
         /* get error and print */
         char *tmp = strtok(response, "{");
