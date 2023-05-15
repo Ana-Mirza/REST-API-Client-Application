@@ -93,15 +93,19 @@ void register_user(int sockfd) {
     char username[MAX_BUF];
     char password[MAX_BUF];
 
-    /* check if user is already logged */
-    if (is_authenticated) {
-        printf("Error. Already logged in!\n");
-        return;
-    }
-
     /* get username */
     printf("username=");
     fgets(username, MAX_BUF, stdin);
+
+    /* get password */
+    printf("password=");
+    fgets(password, MAX_BUF, stdin);
+
+    /* check if user is already logged */
+    if (is_authenticated) {
+        printf("Already logged in. Log out first!\n");
+        return;
+    }
 
     /* check if username has spaces */
     int nr = 0;
@@ -113,15 +117,11 @@ void register_user(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("invalid username\n");
+            printf("Invalid username!\n");
             return;
         }
         token = strtok(NULL, " \n");
     }
-    
-    /* get password */
-    printf("password=");
-    fgets(password, MAX_BUF, stdin);
 
     /* check if password has spaces */
     nr = 0;
@@ -133,7 +133,7 @@ void register_user(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("invalid password\n");
+            printf("Invalid password!\n");
             return;
         }
         token = strtok(NULL, " \n");
@@ -150,13 +150,22 @@ void register_user(int sockfd) {
     send_post_request(sockfd, url, credentials_json, NULL);
     free(credentials_json[0]);
 
-    /* error if credentials are already used */
-    if (strstr(response, "is taken") != NULL) {
-        printf("Invalid credentials.\n");
-    } else if (strstr(response, "200 OK") != NULL) {
+    if (strstr(response, "200 OK") != NULL || strstr(response, "201 Created") != NULL) {
         printf("Registration successful!\n");
+    } else if (strstr(response, "error") != NULL) {
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
     } else {
-        printf("Error.\n");
+        printf("Error!\n");
     }
 
     free(response);
@@ -169,15 +178,19 @@ void login(int sockfd) {
     char username[MAX_BUF];
     char password[MAX_BUF];
 
+    /* get username */
+    printf("username=");
+    fgets(username, MAX_BUF, stdin);
+
+    /* get password */
+    printf("password=");
+    fgets(password, MAX_BUF, stdin);
+
     /* check if user is not logged already */
     if (is_authenticated) {
         printf("Already logged. Please logout first!\n");
         return;
     }
-
-    /* get username */
-    printf("username=");
-    fgets(username, MAX_BUF, stdin);
 
     /* check if username has spaces */
     int nr = 0;
@@ -189,15 +202,11 @@ void login(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("invalid username\n");
+            printf("Invalid username!\n");
             return;
         }
         token = strtok(NULL, " \n");
     }
-    
-    /* get password */
-    printf("password=");
-    fgets(password, MAX_BUF, stdin);
 
     /* check if password has spaces */
     nr = 0;
@@ -209,7 +218,7 @@ void login(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("invalid password\n");
+            printf("Invalid password!\n");
             return;
         }
         token = strtok(NULL, " \n");
@@ -228,10 +237,22 @@ void login(int sockfd) {
 
     /* error if credentials don't match */
     char *ptr = strstr(response, "Set-Cookie: ");
-    if (response == NULL || ptr == NULL) {
+    if (response == NULL || ptr == NULL || strstr(response, "error") != NULL) {
         is_authenticated = 0;
         has_access = 0;
-        printf("Wrong credetials.\n");
+        
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
+
         free(response);
         return;
     }
@@ -269,14 +290,26 @@ void enter_library(int sockfd) {
 
     /* check if user is authenticated */
     if (!is_authenticated) {
-        printf("Error. Authenticate first!\n");
+        printf("Authenticate first!\n");
         return;
     }
 
     send_get_delete_request(sockfd, url, jwt_token, 0);
     char *temp = strstr(response, "token");
-    if (temp == NULL) {
-        printf("Error\n");
+    if (temp == NULL || strstr(response, "error") != NULL) {
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
+
+        free(response);
         return;
     }
 
@@ -301,7 +334,6 @@ void enter_library(int sockfd) {
     }
     
     free(response);
-
 }
 
 void get_books(int sockfd) {
@@ -310,7 +342,7 @@ void get_books(int sockfd) {
 
     /* check if user has access to library */
     if (!has_access) {
-        printf("Error. No access to library!\n");
+        printf("No access to library!\n");
         return;
     }
 
@@ -334,15 +366,15 @@ void get_book(int sockfd) {
     char book_id[MAX_BUF];
     char url[LEN] = "/api/v1/tema/library/books/";
 
-    /* check if user has access to library */
-    if (!has_access) {
-        printf("Error. No access to library!\n");
-        return;
-    }
-
     /* get book id */
     printf("id=");
     fgets(book_id, MAX_BUF, stdin);
+
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("No access to library!\n");
+        return;
+    }
 
     /* check if id is valid */
     int nr = 0;
@@ -354,7 +386,7 @@ void get_book(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("Invalid book id\n");
+            printf("Invalid book id!\n");
             return;
         }
         token = strtok(NULL, " \n");
@@ -367,7 +399,7 @@ void get_book(int sockfd) {
             book_id[i] != '3' && book_id[i] != '4' && book_id[i] != '5' &&
             book_id[i] != '6' && book_id[i] != '7' && book_id[i] != '8' &&
             book_id[i] != '9') {
-            printf("Invalid book id\n");
+            printf("Invalid book id!\n");
             return;
         }
     }
@@ -375,10 +407,7 @@ void get_book(int sockfd) {
     strcat(url, book_id);
     send_get_delete_request(sockfd, url, jwt_token, 0);
 
-    /* print output */
-    if (strstr(response, "No book was found!") != NULL) {
-        printf("Book not found.\n");
-    } else if (strstr(response, "200 OK") != NULL) {
+    if (strstr(response, "200 OK") != NULL) {
         char *tmp = strtok(response, "{");
         tmp = strtok(NULL, "\n{");
         char str[strlen(tmp) + 2];
@@ -387,8 +416,20 @@ void get_book(int sockfd) {
         str[strlen(tmp) + 1] = '\0';
 
         printf("%s\n", str);
+    } else if (strstr(response, "error") != NULL) {
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
     } else {
-        printf("Error.\n");
+        printf("Error!\n");
     }
 
     free(response);
@@ -400,12 +441,6 @@ void add_book(int sockfd) {
 
     char title[MAX_BUF], author[MAX_BUF], genre[MAX_BUF];
     char publisher[MAX_BUF], page_count[MAX_BUF];
-
-    /* check if user has access to library */
-    if (!has_access) {
-        printf("Error. No access to library!\n");
-        return;
-    }
 
     /* get title */
     printf("title=");
@@ -441,6 +476,12 @@ void add_book(int sockfd) {
     memset(page_count, 0, MAX_BUF);
     fgets(page_count, MAX_BUF, stdin);
 
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("No access to library!\n");
+        return;
+    }
+
     /* check if id is valid */
     int nr = 0;
     char tmp[strlen(page_count) + 1];
@@ -451,7 +492,7 @@ void add_book(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("Invalid book id\n");
+            printf("Invalid book id!\n");
             return;
         }
         token = strtok(NULL, " \n");
@@ -464,7 +505,7 @@ void add_book(int sockfd) {
             page_count[i] != '3' && page_count[i] != '4' && page_count[i] != '5' &&
             page_count[i] != '6' && page_count[i] != '7' && page_count[i] != '8' &&
             page_count[i] != '9') {
-            printf("Invalid book id\n");
+            printf("Invalid book id!\n");
             return;
         }
     }
@@ -483,8 +524,20 @@ void add_book(int sockfd) {
     
     if (strstr(response, "200 OK") != NULL) {
         printf("Book successfully added!\n");
+    } else if (strstr(response, "error") != NULL) {
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
     } else {
-        printf("Error.\n");
+        printf("Error!\n");
     }
 
     /* free memory */
@@ -498,15 +551,15 @@ void delete_book(int sockfd) {
     char book_id[MAX_BUF];
     char url[LEN] = "/api/v1/tema/library/books/";
 
-    /* check if user has access to library */
-    if (!has_access) {
-        printf("Error. No access to library!\n");
-        return;
-    }
-
     /* get book id */
     printf("id=");
     fgets(book_id, MAX_BUF, stdin);
+
+    /* check if user has access to library */
+    if (!has_access) {
+        printf("No access to library!\n");
+        return;
+    }
 
     /* check if id is valid */
     int nr = 0;
@@ -518,7 +571,7 @@ void delete_book(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("Invalid book id\n");
+            printf("Invalid book id!\n");
             return;
         }
         token = strtok(NULL, " \n");
@@ -531,7 +584,7 @@ void delete_book(int sockfd) {
             book_id[i] != '3' && book_id[i] != '4' && book_id[i] != '5' &&
             book_id[i] != '6' && book_id[i] != '7' && book_id[i] != '8' &&
             book_id[i] != '9') {
-            printf("Invalid book id\n");
+            printf("Invalid book id!\n");
             return;
         }
     }
@@ -540,12 +593,22 @@ void delete_book(int sockfd) {
     send_get_delete_request(sockfd, url, jwt_token, 1);
 
     /* print output */
-    if (strstr(response, "No book was found!") != NULL) {
-        printf("Book not found.\n");
-    } else if (strstr(response, "200 OK") != NULL) {
+    if (strstr(response, "200 OK") != NULL) {
         printf("Book deleted.\n");
+    } else if (strstr(response, "error") != NULL) {
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
     } else {
-        printf("Error.\n");
+        printf("Error!\n");
     }
 
     free(response);
@@ -556,7 +619,7 @@ void logout(int sockfd) {
     char url[LEN] = "/api/v1/tema/auth/logout";
 
     if (!is_authenticated) {
-        printf("Not logged in\n");
+        printf("Not logged in!\n");
         return;
     }
 
@@ -575,10 +638,23 @@ void logout(int sockfd) {
         jwt_token = NULL;
     }
 
-    if (strstr(response, "200 OK") != NULL)
-        printf("Successfully logged out.\n");
-    else
-        printf("Error. No book was deleted!\n");
+    if (strstr(response, "200 OK") != NULL) {
+        printf("Logged out successfully!\n");
+    } else if (strstr(response, "error") != NULL) {
+        /* get error and print */
+        char *tmp = strtok(response, "{");
+        tmp = strtok(NULL, "\n{");
+        tmp += 9;
+        tmp[strlen(tmp) - 2] = '\0';
+
+        char str[strlen(tmp)];
+        strcpy(str, tmp);
+        str[strlen(tmp) + 1] = '\0';
+
+        printf("%s\n", str);
+    } else {
+        printf("Error!\n");
+    }
 
     free(response);
 }
@@ -626,7 +702,7 @@ int main(int argc, char *argv[])
             break;
         } else {
             /* invalid command */
-            printf("Invalid command\n");
+            printf("Invalid command!\n");
         }
         close_connection(sockfd);
     }
