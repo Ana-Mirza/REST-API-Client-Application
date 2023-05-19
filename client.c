@@ -63,11 +63,9 @@ void send_post_request(int sockfd, char url[], char *credentials[1], char token[
     char content_type[LEN] = "application/json";
 
     request = compute_post_request("34.254.242.81:8080", url, content_type, credentials, 1, NULL, 0, token);
-    // printf("%s\n", request);
 
     send_to_server(sockfd, request);
     response = receive_from_server(sockfd);
-    // printf("%s\n", response);
 
     /* free memory */
     free(request);
@@ -75,11 +73,9 @@ void send_post_request(int sockfd, char url[], char *credentials[1], char token[
 
 void send_get_delete_request(int sockfd, char url[], char token[], int delete_request) {
     request = compute_get_request("34.254.242.81:8080", url, NULL, session_cookie, 1, token, delete_request);
-    // printf("%s\n", request);
 
     send_to_server(sockfd, request);
     response = receive_from_server(sockfd);
-    // printf("%s\n", response);
 
     /* free memory */
     free(request);
@@ -88,7 +84,6 @@ void send_get_delete_request(int sockfd, char url[], char token[], int delete_re
 /* ----------------------- helper commands functions ----------------------- */
 
 void register_user(int sockfd) {
-    // printf("-----register function-----\n");
     char url[LEN] = "/api/v1/tema/auth/register";
     char username[MAX_BUF];
     char password[MAX_BUF];
@@ -172,7 +167,6 @@ void register_user(int sockfd) {
 }
 
 void login(int sockfd) {
-    // printf("-----login function-----\n");
     char url[LEN] = "/api/v1/tema/auth/login";
 
     char username[MAX_BUF];
@@ -285,7 +279,6 @@ void login(int sockfd) {
 }
 
 void enter_library(int sockfd) {
-    // printf("-----enter library function-----\n");
     char url[LEN] = "/api/v1/tema/library/access";
 
     /* check if user is authenticated */
@@ -337,7 +330,6 @@ void enter_library(int sockfd) {
 }
 
 void get_books(int sockfd) {
-    // printf("-----get books function-----\n");
     char url[LEN] = "/api/v1/tema/library/books";
 
     /* check if user has access to library */
@@ -368,7 +360,6 @@ void get_books(int sockfd) {
 }
 
 void get_book(int sockfd) {
-    // printf("-----get book function-----\n");
     char book_id[MAX_BUF];
     char url[LEN] = "/api/v1/tema/library/books/";
 
@@ -448,7 +439,6 @@ void get_book(int sockfd) {
 }
 
 void add_book(int sockfd) {
-    // printf("-----add book function-----\n");
     char url[LEN] = "/api/v1/tema/library/books";
 
     char title[MAX_BUF], author[MAX_BUF], genre[MAX_BUF];
@@ -532,7 +522,12 @@ void add_book(int sockfd) {
     /* check not to have letters or symbols */
     page_count[strlen(page_count) - 1] = '\0';
     for (int i = 0; i < strlen(page_count); i++) {
-        if (page_count[i] != '1' && page_count[i] != '2' &&
+        if (i == 0 && page_count[i] == '0') {
+            printf("Invalid book id!\n");
+            return;
+        }
+
+        if (page_count[i] != '0' && page_count[i] != '1' && page_count[i] != '2' &&
             page_count[i] != '3' && page_count[i] != '4' && page_count[i] != '5' &&
             page_count[i] != '6' && page_count[i] != '7' && page_count[i] != '8' &&
             page_count[i] != '9') {
@@ -578,7 +573,6 @@ void add_book(int sockfd) {
 }
 
 void delete_book(int sockfd) {
-    // printf("-----delete book function-----\n");
     char book_id[MAX_BUF];
     char url[LEN] = "/api/v1/tema/library/books/";
 
@@ -646,7 +640,6 @@ void delete_book(int sockfd) {
 }
 
 void logout(int sockfd) {
-    // printf("-----logout function-----\n");
     char url[LEN] = "/api/v1/tema/auth/logout";
 
     if (!is_authenticated) {
@@ -702,7 +695,6 @@ int main(int argc, char *argv[])
         memset(buffer, 0, sizeof(buffer));
 
         /* get command */
-        // printf("insert command\n");
         fgets(buffer, MAX_BUF, stdin);
 
         /* open connection with server */
