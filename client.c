@@ -451,22 +451,12 @@ void add_book(int sockfd) {
     fgets(title, MAX_BUF, stdin);
     title[strlen(title) - 1] = '\0';
 
-    if (strcmp(title, "") == 0) {
-        printf("Invalid title!\n");
-        return;
-    }
-
     /* get author */
     printf("author=");
 
     memset(author, 0, MAX_BUF);
     fgets(author, MAX_BUF, stdin);
     author[strlen(author) - 1] = '\0';
-
-    if (strcmp(author, "") == 0) {
-        printf("Invalid author!\n");
-        return;
-    }
 
     /* get genre */
     printf("genre=");
@@ -475,21 +465,12 @@ void add_book(int sockfd) {
     fgets(genre, MAX_BUF, stdin);
     genre[strlen(genre) - 1] = '\0';
 
-    if (strcmp(genre, "") == 0) {
-        printf("Invalid genre!\n");
-        return;
-    }
-
     /* get publisher */
     printf("publisher=");
 
     memset(publisher, 0, MAX_BUF);
     fgets(publisher, MAX_BUF, stdin);
     publisher[strlen(publisher) - 1] = '\0';
-    if (strcmp(publisher, "") == 0) {
-        printf("Invalid publisher!\n");
-        return;
-    }
 
     /* get page count */
     printf("page_count=");
@@ -503,7 +484,31 @@ void add_book(int sockfd) {
         return;
     }
 
-    /* check if id is valid */
+    /* checkif title is valid */
+    if (strcmp(title, "") == 0) {
+        printf("Invalid title!\n");
+        return;
+    }
+
+    /* check if author is valid */
+    if (strcmp(author, "") == 0) {
+        printf("Invalid author!\n");
+        return;
+    }
+
+    /* check if genre is valid */
+    if (strcmp(genre, "") == 0) {
+        printf("Invalid genre!\n");
+        return;
+    }
+
+    /* check if publisher is valid */
+    if (strcmp(publisher, "") == 0) {
+        printf("Invalid publisher!\n");
+        return;
+    }
+
+    /* check if page count is valid */
     int nr = 0;
     char tmp[strlen(page_count) + 1];
     memcpy(tmp, page_count, strlen(page_count) + 1);
@@ -513,7 +518,7 @@ void add_book(int sockfd) {
         nr++;
 
         if (nr == 2) {
-            printf("Invalid book id!\n");
+            printf("Invalid page count!\n");
             return;
         }
         token = strtok(NULL, " \n");
@@ -523,7 +528,7 @@ void add_book(int sockfd) {
     page_count[strlen(page_count) - 1] = '\0';
     for (int i = 0; i < strlen(page_count); i++) {
         if (i == 0 && page_count[i] == '0') {
-            printf("Invalid book id!\n");
+            printf("Invalid page count!\n");
             return;
         }
 
@@ -531,7 +536,7 @@ void add_book(int sockfd) {
             page_count[i] != '3' && page_count[i] != '4' && page_count[i] != '5' &&
             page_count[i] != '6' && page_count[i] != '7' && page_count[i] != '8' &&
             page_count[i] != '9') {
-            printf("Invalid book id!\n");
+            printf("Invalid page count!\n");
             return;
         }
     }
