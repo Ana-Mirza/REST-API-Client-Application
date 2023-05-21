@@ -624,7 +624,7 @@ void delete_book(int sockfd) {
 
     /* print output */
     if (strstr(response, "200 OK") != NULL) {
-        printf("Book deleted.\n");
+        printf("Book deleted successfully.\n");
     } else if (strstr(response, "error") != NULL) {
         /* get error and print */
         char *tmp = strtok(response, "{");
