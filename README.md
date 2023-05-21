@@ -105,6 +105,18 @@ The logout is successful if the user was previously logged in. It invalidates
 the session cookies and JWT token so that access to the library is no more
 available.
 
+## Json Parsing Library
+For Json parsing, I used the library parson.h since the client was implemented
+in c. In order to convert the user input from stdin string to json, a JSON_Value
+was created, and using the json_object_set_string() function from the library,
+build the json string by placing each key with its value.
+The final json string was obtained through the function json_serialize_to_string().
+
+In order to print the json output from the server regarding the books,
+json_parse_string() was used to parse the response from the server and get a
+JSON_Value which was used in the function json_serialize_to_string_pretty()
+to make it more readable.
+
 ## Additional Error Cases
 The user can receive an error in the following situations:
 
